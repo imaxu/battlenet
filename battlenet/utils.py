@@ -3,7 +3,7 @@ import urllib
 
 
 def normalize(name):
-    if not isinstance(name, unicode):
+    if not isinstance(name, str): # isinstance(name, unicode)  fix this for python3
         name = name.decode('utf-8')
 
     name = name.replace("'", '')
@@ -11,10 +11,10 @@ def normalize(name):
 
 
 def quote(name):
-    if isinstance(name, unicode):
+    if isinstance(name, str):
         name = normalize(name)
 
-    return urllib.quote(name)
+    return urllib.parse.quote(name)
 
 
 def make_icon_url(region, icon, size='large'):

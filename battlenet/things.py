@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import operator
 import collections
 import datetime
@@ -760,7 +762,7 @@ class Guild(LazyThing):
 
     def get_leader(self):
         for member in self.members:
-            if member['rank'] is 0:
+            if member['rank'] == 0:
                 return member['character']
 
     def get_realm_name(self):

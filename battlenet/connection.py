@@ -1,11 +1,13 @@
+# -*- coding: utf-8 -*-
+
 import logging
-import urllib2
+import urllib.request as urllib2 # fix for python3
 import urllib
 import base64
 import hmac
 import hashlib
 import time
-import urlparse
+from urllib.parse import urlparse  # fix for python3
 import re
 from .things import Character, Realm, Guild, Reward, Perk, Class, Race
 from .exceptions import APIError, CharacterNotFound, GuildNotFound, RealmNotFound
@@ -19,8 +21,8 @@ except ImportError:
 
 __all__ = ['Connection']
 
-URL_FORMAT = 'https://%(region)s.battle.net/api/%(game)s%(path)s?%(params)s'
-
+URL_FORMAT = 'https://%(region)s.api.battle.net/%(game)s%(path)s?%(params)s'
+URL_CN_FORMAT = 'https://gateway.battlenet.com.cn/%(game)s%(path)s?%(params)s'
 logger = logging.getLogger('battlenet')
 
 DAYS = ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun',)
@@ -58,7 +60,7 @@ class Connection(object):
 
     def sign_request(self, method, now, url, private_key):
         string_to_sign = '%s\n%s\n%s\n' % (method, now, url)
-        hash = hmac.new(private_key, string_to_sign, hashlib.sha1).digest()
+        hash = hmac.new(bytes(private_key,'utf-8'), bytes(string_to_sign,'utf-8'), hashlib.sha1).digest()
         return base64.encodestring(hash).rstrip()
 
     def make_request(self, region, path, params=None, cache=False):
@@ -73,19 +75,28 @@ class Connection(object):
             'Date': date
         }
 
-        url = URL_FORMAT % {
-            'region': region,
+        if region == 'cn':
+            url = URL_CN_FORMAT % {
             'game': self.game,
             'path': path,
             'params': '&'.join('='.join(
                 (k, ','.join(v) if isinstance(v, (set, list)) else v))
                 for k, v in params.items() if v)
-        }
-
+            }
+        else:
+            url = URL_FORMAT % {
+                'region': region,
+                'game': self.game,
+                'path': path,
+                'params': '&'.join('='.join(
+                    (k, ','.join(v) if isinstance(v, (set, list)) else v))
+                    for k, v in params.items() if v)
+            }
+        print("request ==> " + url)
         if cache and url in self._cache:
             return self._cache[url]
 
-        uri = urlparse.urlparse(url)
+        uri = urlparse(url)
         if self.public_key:
             signature = self.sign_request('GET', date, uri.path, self.private_key)
             headers['Authorization'] = 'BNET %s:%s' % (self.public_key, signature)
@@ -96,7 +107,7 @@ class Connection(object):
 
         try:
             response = urllib2.urlopen(request)
-        except urllib2.URLError, e:
+        except urllib2.URLError as e:
             raise APIError(str(e))
 
         try:
